@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Bloxorz</title>
+		<style>
+			body {
+				display: grid;
+				justify-content: center;
+				align-items: center;
+			}
+			table {
+				border-collapse: collapse;
+				margin: 120px;
+			}
+			td {
+				width: 40px;
+				height: 40px;
+				text-align: center;
+				border: 1px solid #000;
+			}
+			.block {
+				background-color: burlywood;
+			}
+			.exit {
+				background-color: #33FF6E; 
+			}
+			.zero {
+				background-color: #000;
+			}
+			#output {
+				margin: 20px;
+				font-weight: bold;
+			}
+		</style>
+	</head>
+	<body>
+		<table id="board"></table>
+		<div id="output"></div>
+		<script>
+			//takes a 2D array (board) as input and dynamically generates an HTML table representing the game board.
+			function renderBoard(board) {
+			  const table = document.getElementById('board');
+			  table.innerHTML = '';
+			
+			  for (let i = 0; i < board.length; i++) {
+			    const row = document.createElement('tr');
+			
+			    for (let j = 0; j < board[i].length; j++) {
+			      const cell = document.createElement('td');
+			      cell.innerText = board[i][j];
+			
+			      if (board[i][j] === 'B') {
+			        cell.classList.add('block');
+			      } else if (board[i][j] === 'E') {
+			        cell.classList.add('exit');
+			      } else if (board[i][j] === '0') {
+			        cell.classList.add('zero');
+			      }
+			
+			      row.appendChild(cell);
+			    }
+			
+			    table.appendChild(row);
+			  }
+			}
+			
+
+			//directionWords array is defined to map numeric directions (0, 1, 2, 3) to corresponding words ('up', 'right', 'down', 'left')
+			const directionWords = ['up', 'right', 'down', 'left'];
+			
+			//initialBoard array represents the initial state of the game board with a block ('B'), an exit ('E'), and empty spaces ('0')
+			const initialBoard = [
+			  '...000B000',
+			  '.0000..000',
+			  '........0',
+			  '0.....00..',
+			  '000....E..',
+			  '000000...0'
+			];
+			
+			//renderBoard function is called to display the initial board on the webpage.
+			renderBoard(initialBoard);
+			
+
+			//outputElement is used to display the solution(answer) or a message indicating that no solution was found.
+			const outputElement = document.getElementById('output');
+			const solution = solve(initialBoard);
+			
+			if (solution) {
+			outputElement.innerText = 'Answer: ' + solution;
+			} else {
+			outputElement.innerText = 'Answer not found.';
+			}
+			
+			renderBoard(initialBoard);
+			
+
+			//solve function attempts to find a solution to the Bloxorz puzzle using a breadth-first search algorithm. It explores different paths through the game board until it finds a path to the exit ('E').
+			function solve (arr) {
+				const initialPosition = findPosition(arr, 'B')
+				const exit = findPosition(arr, 'E')
+			
+				let variants = [{
+				position: initialPosition,
+				path: [],
+				}]
+			
+				const cache = {}
+			
+				while (variants.length) {
+    				const nextVariants = [];
+
+    				for (let j = 0; j < variants.length; j++) {
+      					const variant = variants[j];
+      					const [x1, y1, x2, y2] = variant.position;
+
+
+      					if (isPositionsEqual(variant.position, exit)) return variant.path.join(' -> ');
+      					for (let i = 0; i < 4; i++) {
+        					const direction = [-1, 1, 1, -1][i];//directions to go, investigate each direction
+        					// console.log(direction);
+        					const [a1, a2, b1, b2] = [[y1, y2, x1, x2], [x1, x2, y1, y2]][i % 2]; //helps in maintaining the correct representation of the block's position based on the current movement direction.
+        					const a = direction > 0 ? Math.max(a1, a2) : Math.min(a1, a2); //a is calculated based on the movement direction. If the direction is positive, it takes the maximum of a1 and a2; otherwise, it takes the minimum. This ensures that a represents the correct horizontal or vertical position.
+        					const k = (Math.abs(1 - Math.abs(a1 - a2)) - Math.abs(b1 - b2)) * direction; //k represents the vertical movement. It's calculated based on the difference between the absolute values of a1 - a2 and b1 - b2.
+        					const position = [[b1, a + direction, b2, a + direction + k], [a + direction, b1, a + direction + k, b2]][i % 2]; //these lines are essential to correctly update the block's position according to the specified movement direction while considering the alternating representation of the block's points.
+							// console.log("Next position", position);
+							// console.log("a " , a);
+							// console.log("k " , k);
+							// console.log("position " , position);
+        					const path = variant.path.concat(directionWords[i]); // Use directionWords array
+							// console.log("path " , path);
+        					const key = position.join('');
+
+        					if (!cache[key] && isPositionValid(arr, position)) {
+          						cache[key] = true;
+
+          						nextVariants.push({
+            					position,
+            					path,
+          						});
+        					}
+      					}
+    				}
+    				variants = nextVariants;
+					// console.log("Next position", variants);
+  				}
+				return ''
+			}
+			
+			function findPosition (map, el) {
+				for (let i = 0; i < map.length; i++) {
+					for (let j = 0; j < map[i].length; j++) {
+						if (map[i][j] === el) return [j, i, j, i]
+					}
+				}
+			}
+			
+			function get (map, x, y) {
+				return map[y] && map[y][x]
+			}
+			
+			function isPositionValid (map, position) {
+				const [x1, y1, x2, y2] = position
+				return !(['0', undefined].includes(get(map, x1, y1)) || ['0', undefined].includes(get(map, x2, y2)))
+			}
+			
+			function isPositionsEqual (position1, position2) {
+				for (let i = 0; i < 4; i++) {
+					if (position1[i] !== position2[i]) return false
+				}
+				return true
+			}
+		</script>
+	</body>
+</html>
